@@ -25,7 +25,7 @@ A ComfyUI custom node pack for extracting, saving, and loading face vectors (emb
 
 2. Clone this repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/comfyui-vector-face.git
+   git clone https://github.com/skayka/vector-face.git
    ```
 
 3. Install dependencies:
