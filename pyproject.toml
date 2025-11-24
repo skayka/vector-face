@@ -11,12 +11,12 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/YOUR_USERNAME/comfyui-vector-face"
-Documentation = "https://github.com/YOUR_USERNAME/comfyui-vector-face#readme"
-Issues = "https://github.com/YOUR_USERNAME/comfyui-vector-face/issues"
+Repository = "https://github.com/skayka/vector-face"
+Documentation = "https://github.com/skayka/vector-face#readme"
+Issues = "https://github.com/skayka/vector-face/issues"
 
 [tool.comfy]
-PublisherId = "YOUR_PUBLISHER_ID"
+PublisherId = "skayka"
 DisplayName = "Vector Face"
 Icon = ""
 
