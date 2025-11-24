@@ -1,0 +1,22 @@
+[project]
+name = "comfyui-vector-face"
+description = "ComfyUI custom nodes for extracting, saving, and loading face vectors using InsightFace"
+version = "1.0.0"
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "insightface>=0.7.3",
+    "onnxruntime>=1.15.0",
+]
+
+[project.urls]
+Repository = "https://github.com/YOUR_USERNAME/comfyui-vector-face"
+Documentation = "https://github.com/YOUR_USERNAME/comfyui-vector-face#readme"
+Issues = "https://github.com/YOUR_USERNAME/comfyui-vector-face/issues"
+
+[tool.comfy]
+PublisherId = "YOUR_PUBLISHER_ID"
+DisplayName = "Vector Face"
+Icon = ""
+
