@@ -148,17 +148,22 @@ class SaveFaceVector:
         # Get batch size
         batch_size = face_vector.shape[0] if len(face_vector.shape) > 1 else 1
         
+        # Convert to CPU and numpy for JSON serialization
+        face_vector_cpu = face_vector.cpu()
+        
         # Get base path for saving files
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
         
         # Save one file per face vector in the batch
         saved_files = []
+        vectors_array = []
+        
         for i in range(batch_size):
             # Extract single face vector from batch
             if batch_size == 1:
-                single_vector = face_vector
+                single_vector = face_vector_cpu
             else:
-                single_vector = face_vector[i:i+1]  # Keep batch dimension for consistency
+                single_vector = face_vector_cpu[i:i+1]  # Keep batch dimension for consistency
             
             # Generate filename with index for batch items
             if batch_size > 1:
@@ -169,24 +174,29 @@ class SaveFaceVector:
             file_path = os.path.join(full_output_folder, file)
             
             # Save individual face vector
-            torch.save(single_vector.cpu(), file_path)
+            torch.save(single_vector, file_path)
             saved_files.append({
                 "filename": file,
                 "subfolder": subfolder if subfolder else "",
                 "type": "output"
             })
+            
+            # Convert to list for JSON serialization (remove batch dimension)
+            vector_list = single_vector.squeeze(0).tolist() if single_vector.shape[0] == 1 else single_vector.tolist()
+            vectors_array.append(vector_list)
         
         if batch_size > 1:
             print(f"\033[33mINFO: Saved {batch_size} face vector(s) to {full_output_folder}\033[0m")
         else:
             print(f"\033[33mINFO: Face vector saved to {file_path}\033[0m")
         
-        # Return file information for API response
+        # Return file information AND vector data for API response
         # OUTPUT_NODE nodes should return a dict with UI info
-        # This allows the saved files to be accessed via the ComfyUI API history endpoint
+        # This allows both file paths and actual vector data to be accessed via the ComfyUI API
         return {
             "ui": {
-                "face_vectors": saved_files
+                "face_vectors": saved_files,
+                "vectors": vectors_array  # Array of vectors, each is a list of 512 floats
             }
         }
 
