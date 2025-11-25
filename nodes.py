@@ -52,12 +52,12 @@ class ExtractFaceVector:
             }
         }
 
-    RETURN_TYPES = ("FACE_VECTOR",)
-    RETURN_NAMES = ("face_vector",)
+    RETURN_TYPES = ()  # Empty to allow UI data return for OUTPUT_NODE
+    RETURN_NAMES = ()
     FUNCTION = "extract_face_vector"
     OUTPUT_NODE = True
     CATEGORY = "vector_face"
-    DESCRIPTION = "Extract face embedding vector from image using InsightFace"
+    DESCRIPTION = "Extract face embedding vector from image using InsightFace. Returns vectors in API response."
     
     @classmethod
     def IS_CHANGED(cls, **kwargs):
@@ -133,24 +133,15 @@ class ExtractFaceVector:
             vector_list = face_embeds_cpu[i].tolist()
             vectors_array.append(vector_list)
         
-        # Convert vectors to JSON-serializable format
-        vectors_array = []
-        for i in range(face_embeds_cpu.shape[0]):
-            vector_list = face_embeds_cpu[i].tolist()
-            vectors_array.append(vector_list)
-        
-        # Return tuple for workflow compatibility
-        # For OUTPUT_NODE with RETURN_TYPES, ComfyUI might not support UI data extraction
-        # However, let's try storing UI data on the tensor object itself
-        # ComfyUI might check for UI data on the return values
-        result_tuple = (face_embeds_tensor,)
-        
-        # Try attaching UI data to the tensor - ComfyUI might extract it
-        # Store UI data as an attribute that ComfyUI can access
-        if not hasattr(face_embeds_tensor, '_ui_data'):
-            face_embeds_tensor._ui_data = {"vectors": vectors_array}
-        
-        return result_tuple
+        # For OUTPUT_NODE with RETURN_TYPES = (), ComfyUI extracts UI data from dict return
+        # This format allows vectors to appear in API response
+        # Note: RETURN_TYPES = () means this node can't be chained to other nodes
+        # Use SaveFaceVector if you need to chain ExtractFaceVector to other nodes
+        return {
+            "ui": {
+                "vectors": vectors_array  # Array of vectors, each is a list of 512 floats
+            }
+        }
 
 
 class SaveFaceVector:
