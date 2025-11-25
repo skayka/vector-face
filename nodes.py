@@ -139,26 +139,18 @@ class ExtractFaceVector:
             vector_list = face_embeds_cpu[i].tolist()
             vectors_array.append(vector_list)
         
-        # Return tuple with UI data for OUTPUT_NODE
-        # ComfyUI OUTPUT_NODE extracts "ui" key from return value
-        # For nodes with RETURN_TYPES, we need to return tuple but attach UI data
-        # Create a result that acts like a tuple but has UI data
-        class TupleWithUI:
-            def __init__(self, tensor, ui_data):
-                self._tensor = tensor
-                self.ui = ui_data
-            def __getitem__(self, idx):
-                if idx == 0:
-                    return self._tensor
-                raise IndexError
-            def __len__(self):
-                return 1
-            def __iter__(self):
-                return iter((self._tensor,))
-            def __repr__(self):
-                return f"({self._tensor!r},)"
+        # Return tuple for workflow compatibility
+        # For OUTPUT_NODE with RETURN_TYPES, ComfyUI might not support UI data extraction
+        # However, let's try storing UI data on the tensor object itself
+        # ComfyUI might check for UI data on the return values
+        result_tuple = (face_embeds_tensor,)
         
-        return TupleWithUI(face_embeds_tensor, {"vectors": vectors_array})
+        # Try attaching UI data to the tensor - ComfyUI might extract it
+        # Store UI data as an attribute that ComfyUI can access
+        if not hasattr(face_embeds_tensor, '_ui_data'):
+            face_embeds_tensor._ui_data = {"vectors": vectors_array}
+        
+        return result_tuple
 
 
 class SaveFaceVector:
