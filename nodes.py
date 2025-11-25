@@ -37,6 +37,7 @@ class ExtractFaceVector:
     """
     Extract face vector (embedding) from an image using InsightFace.
     Returns a tensor that can be used later for face generation.
+    Also returns vectors as JSON in API response.
     """
     @classmethod
     def INPUT_TYPES(s):
@@ -54,8 +55,14 @@ class ExtractFaceVector:
     RETURN_TYPES = ("FACE_VECTOR",)
     RETURN_NAMES = ("face_vector",)
     FUNCTION = "extract_face_vector"
+    OUTPUT_NODE = True
     CATEGORY = "vector_face"
     DESCRIPTION = "Extract face embedding vector from image using InsightFace"
+    
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        # Force re-execution to ensure fresh vectors
+        return float("nan")
 
     def extract_face_vector(self, image, insightface=None, provider="CPU", use_normed=True):
         """
@@ -68,7 +75,7 @@ class ExtractFaceVector:
             use_normed: If True, use normed_embedding (standard). If False, use raw embedding.
         
         Returns:
-            Face vector tensor (B, 512) - batch of face embeddings
+            Tuple: (face_vector_tensor, ui_dict) - Face vector tensor and UI data for API
         """
         # Load InsightFace model if not provided
         if insightface is None:
@@ -117,9 +124,41 @@ class ExtractFaceVector:
             face_embeds.append(torch.from_numpy(embedding).unsqueeze(0))
         
         # Stack all face embeddings into a batch tensor
-        face_embeds = torch.stack(face_embeds).to(device, dtype=dtype)
+        face_embeds_tensor = torch.stack(face_embeds).to(device, dtype=dtype)
         
-        return (face_embeds,)
+        # Convert to list for JSON serialization
+        face_embeds_cpu = face_embeds_tensor.cpu()
+        vectors_array = []
+        for i in range(face_embeds_cpu.shape[0]):
+            vector_list = face_embeds_cpu[i].tolist()
+            vectors_array.append(vector_list)
+        
+        # Convert vectors to JSON-serializable format
+        vectors_array = []
+        for i in range(face_embeds_cpu.shape[0]):
+            vector_list = face_embeds_cpu[i].tolist()
+            vectors_array.append(vector_list)
+        
+        # Return tuple with UI data for OUTPUT_NODE
+        # ComfyUI OUTPUT_NODE extracts "ui" key from return value
+        # For nodes with RETURN_TYPES, we need to return tuple but attach UI data
+        # Create a result that acts like a tuple but has UI data
+        class TupleWithUI:
+            def __init__(self, tensor, ui_data):
+                self._tensor = tensor
+                self.ui = ui_data
+            def __getitem__(self, idx):
+                if idx == 0:
+                    return self._tensor
+                raise IndexError
+            def __len__(self):
+                return 1
+            def __iter__(self):
+                return iter((self._tensor,))
+            def __repr__(self):
+                return f"({self._tensor!r},)"
+        
+        return TupleWithUI(face_embeds_tensor, {"vectors": vectors_array})
 
 
 class SaveFaceVector:
@@ -191,8 +230,8 @@ class SaveFaceVector:
             print(f"\033[33mINFO: Face vector saved to {file_path}\033[0m")
         
         # Return file information AND vector data for API response
-        # OUTPUT_NODE nodes should return a dict with UI info
-        # This allows both file paths and actual vector data to be accessed via the ComfyUI API
+        # OUTPUT_NODE nodes return a dict with UI info
+        # Note: ComfyUI expects this format - the "ui" dict is extracted automatically
         return {
             "ui": {
                 "face_vectors": saved_files,
