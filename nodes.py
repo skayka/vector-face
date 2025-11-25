@@ -145,24 +145,48 @@ class SaveFaceVector:
     DESCRIPTION = "Save face vector to disk for later use"
 
     def save(self, face_vector, filename_prefix):
+        # Get batch size
+        batch_size = face_vector.shape[0] if len(face_vector.shape) > 1 else 1
+        
+        # Get base path for saving files
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
-        file = f"{filename}_{counter:05}.facevec"
-        file_path = os.path.join(full_output_folder, file)
-
-        # Save face vector to CPU for storage
-        torch.save(face_vector.cpu(), file_path)
-        print(f"\033[33mINFO: Face vector saved to {file_path}\033[0m")
+        
+        # Save one file per face vector in the batch
+        saved_files = []
+        for i in range(batch_size):
+            # Extract single face vector from batch
+            if batch_size == 1:
+                single_vector = face_vector
+            else:
+                single_vector = face_vector[i:i+1]  # Keep batch dimension for consistency
+            
+            # Generate filename with index for batch items
+            if batch_size > 1:
+                file = f"{filename}_{counter:05}_{i:04d}.facevec"
+            else:
+                file = f"{filename}_{counter:05}.facevec"
+            
+            file_path = os.path.join(full_output_folder, file)
+            
+            # Save individual face vector
+            torch.save(single_vector.cpu(), file_path)
+            saved_files.append({
+                "filename": file,
+                "subfolder": subfolder if subfolder else "",
+                "type": "output"
+            })
+        
+        if batch_size > 1:
+            print(f"\033[33mINFO: Saved {batch_size} face vector(s) to {full_output_folder}\033[0m")
+        else:
+            print(f"\033[33mINFO: Face vector saved to {file_path}\033[0m")
         
         # Return file information for API response
-        # OUTPUT_NODE nodes should return a tuple, with UI info as a dict
-        # This allows the saved file to be accessed via the ComfyUI API history endpoint
+        # OUTPUT_NODE nodes should return a dict with UI info
+        # This allows the saved files to be accessed via the ComfyUI API history endpoint
         return {
             "ui": {
-                "face_vectors": [{
-                    "filename": file,
-                    "subfolder": subfolder if subfolder else "",
-                    "type": "output"
-                }]
+                "face_vectors": saved_files
             }
         }
 
