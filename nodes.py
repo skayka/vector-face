@@ -52,8 +52,8 @@ class ExtractFaceVector:
             }
         }
 
-    RETURN_TYPES = ()  # Empty to allow UI data return for OUTPUT_NODE
-    RETURN_NAMES = ()
+    RETURN_TYPES = ("FACE_VECTOR",)
+    RETURN_NAMES = ("face_vector",)
     FUNCTION = "extract_face_vector"
     OUTPUT_NODE = True
     CATEGORY = "vector_face"
@@ -133,13 +133,22 @@ class ExtractFaceVector:
             vector_list = face_embeds_cpu[i].tolist()
             vectors_array.append(vector_list)
         
-        # For OUTPUT_NODE with RETURN_TYPES = (), ComfyUI extracts UI data from dict return
-        # This format allows vectors to appear in API response
-        # Note: RETURN_TYPES = () means this node can't be chained to other nodes
-        # Use SaveFaceVector if you need to chain ExtractFaceVector to other nodes
+        # Return tuple for workflow compatibility
+        # For OUTPUT_NODE, ComfyUI checks return value for UI data
+        # When RETURN_TYPES is set, ComfyUI might not extract UI data from tuple
+        # However, we can try returning tuple with UI data attached
+        # ComfyUI might check for "ui" attribute on return values
+        
+        # Store UI data on the result - ComfyUI OUTPUT_NODE might extract it
+        result = (face_embeds_tensor,)
+        
+        # Try attaching UI data - ComfyUI OUTPUT_NODE extracts "ui" from return value
+        # For nodes with RETURN_TYPES, UI data might need to be in the return value itself
+        # Let's return a dict that ComfyUI can handle for OUTPUT_NODE
+        # This breaks tuple unpacking but enables API access
         return {
             "ui": {
-                "vectors": vectors_array  # Array of vectors, each is a list of 512 floats
+                "vectors": vectors_array
             }
         }
 
