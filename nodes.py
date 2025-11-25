@@ -147,12 +147,24 @@ class SaveFaceVector:
     def save(self, face_vector, filename_prefix):
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
         file = f"{filename}_{counter:05}.facevec"
-        file = os.path.join(full_output_folder, file)
+        file_path = os.path.join(full_output_folder, file)
 
         # Save face vector to CPU for storage
-        torch.save(face_vector.cpu(), file)
-        print(f"\033[33mINFO: Face vector saved to {file}\033[0m")
-        return (None,)
+        torch.save(face_vector.cpu(), file_path)
+        print(f"\033[33mINFO: Face vector saved to {file_path}\033[0m")
+        
+        # Return file information for API response
+        # OUTPUT_NODE nodes should return a tuple, with UI info as a dict
+        # This allows the saved file to be accessed via the ComfyUI API history endpoint
+        return {
+            "ui": {
+                "face_vectors": [{
+                    "filename": file,
+                    "subfolder": subfolder if subfolder else "",
+                    "type": "output"
+                }]
+            }
+        }
 
 
 class LoadFaceVector:
